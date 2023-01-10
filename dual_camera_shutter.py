@@ -18,7 +18,7 @@ def init_dir():
         os.mkdir(current_path + "\\save_img")
 
     save_dir = current_path + "\\save_img\\" + time.strftime("%Y%m%d-%H%M%S")
-    if not os.path.exists(current_path + "\\save_img/{0}".format(save_dir)):
+    if not os.path.exists(save_dir):
         os.mkdir(save_dir)
 
 def print_info():
@@ -57,8 +57,8 @@ def main():
             break
 
         if key == ord('s'):
-            left_img_path = "{0}\\{1}_left.jpg".format(save_dir, save_count)
-            right_img_path = "{0}\\{1}_right.jpg".format(save_dir, save_count)
+            left_img_path = "{0}\\left_{1}.jpg".format(save_dir, save_count)
+            right_img_path = "{0}\\right_{1}.jpg".format(save_dir, save_count)
 
             # [Ymin:Ymax,Xmin:Xmax]
             left_img = frame[0:FRAME_SIZE[1], 0:int(FRAME_SIZE[0]/2)]
