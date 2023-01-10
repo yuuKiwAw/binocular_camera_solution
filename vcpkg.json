@@ -1,0 +1,17 @@
+{
+  "name": "yuki-deep-inference-platform",
+  "version": "1.0.0",
+  "dependencies": [
+    {
+      "name": "opencv4",
+      "version>=": "4.5.5"
+    }
+  ],
+  "builtin-baseline": "8b62d95a81afcb9efe74bebeb62f04c1e0e2a003",
+  "overrides": [
+    {
+      "name": "opencv",
+      "version": "4.5.5"
+    }
+  ]
+}
