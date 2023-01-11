@@ -8,8 +8,8 @@
 ![80度结构图](/doc/HBVCAM-4M2214HD-2V11/80%E5%BA%A6%E7%BB%93%E6%9E%84%E5%8F%82%E6%95%B0.jpg)
 
 ## python脚本说明
-- dual_camera_opencv.py (双目相机测试使用)
-- dual_camera_shutter.py (双目相机照片拍摄使用)
+- binocular_camera_opencv.py (双目相机测试使用)
+- binocular_camera_shutter.py (双目相机照片拍摄使用)
 - gen_pattern.py (生成一个宽9 高6 的棋盘, A4打印每格边长约为27mm)
 - camera_calibration.py (opencv棋盘点标定)
 - point_cloud_display.py (点云图读取显示)

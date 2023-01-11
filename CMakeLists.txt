@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.24)
-project(dualcamera)
+project(binocular_camera_solution)
 
 set(CMAKE_CXX_STANDARD 17)
 
