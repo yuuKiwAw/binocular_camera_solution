@@ -1,4 +1,11 @@
-# HBVCAM-4M2214HD-2 V11
+# HBVCAM-4M2214HD-2 V11 (可视80°结构双目相机) 开发指南
+## author: yuki
+- 产品参数
+![产品参数](/doc//HBVCAM-4M2214HD-2V11/%E4%BA%A7%E5%93%81%E5%8F%82%E6%95%B0.jpg)
+- 主要规格
+![主要规格](/doc/HBVCAM-4M2214HD-2V11//%E4%B8%BB%E8%A6%81%E8%A7%84%E6%A0%BC.jpg)
+- 80度结构图
+![80度结构图](/doc/HBVCAM-4M2214HD-2V11/80%E5%BA%A6%E7%BB%93%E6%9E%84%E5%8F%82%E6%95%B0.jpg)
 
 ## python脚本说明
 - dual_camera_opencv.py (双目相机测试使用)
@@ -9,6 +16,8 @@
 
 ## c++程序说明
 - ./src/stereo_calib.cpp (官方案例使用opencv双目相机标定)
+- ./src/stereo_match.cpp (官方案例使用opencv双目相机立体匹配)
+- ./src/stereo_match_video.cpp (使用opencv实时双目相机立体匹配，可点击视差图计算距离)
 
 ## Opencv stereo_calib.cpp 双目相机标定
 ### 内外参数据说明
