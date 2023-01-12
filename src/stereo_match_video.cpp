@@ -24,8 +24,14 @@ const  enum { STEREO_BM=0, STEREO_SGBM=1, STEREO_HH=2, STEREO_VAR=3, STEREO_3WAY
 cv::Mat xyz;
 cv::Mat floatDisp;
 
+float time_elapsed = 0.0;   // 立体匹配耗时
 
-static void stereo_match(int algorithm, cv::Mat img_left, cv::Mat img_right, cv::Mat& out_stereo_frame) {
+cv::Scalar SAFE_COLOR = cv::Scalar(102, 205, 0);
+cv::Scalar WARNING_COLOR = cv::Scalar(0, 165, 255);
+cv::Scalar DANGER_COLOR = cv::Scalar(60, 20, 220);
+
+static void
+stereo_match(int algorithm, cv::Mat img_left, cv::Mat img_right, cv::Mat& out_disp_img) {
     cv::Mat m_img_left;
     cv::Mat m_img_right;
     cv::Ptr<cv::StereoBM> bm = cv::StereoBM::create(16,9);
@@ -141,6 +147,7 @@ static void stereo_match(int algorithm, cv::Mat img_left, cv::Mat img_right, cv:
     }
     t = cv::getTickCount() - t;
     // printf("Time elapsed: %fms\n", t*1000/cv::getTickFrequency());
+    time_elapsed = t*1000/cv::getTickFrequency();
 
     if( algorithm != STEREO_VAR )
         disp.convertTo(disp8, CV_8U, 255/(numberOfDisparities*16.));
@@ -155,7 +162,9 @@ static void stereo_match(int algorithm, cv::Mat img_left, cv::Mat img_right, cv:
     disp.convertTo(floatDisp, CV_32F, 1.0f / disparity_multiplier);
     reprojectImageTo3D(floatDisp, xyz, Q, true);
 
-    out_stereo_frame = disp8_3c;
+    // cv::imshow("disp", disp8);
+
+    out_disp_img = disp8_3c;
 }
 
 
@@ -166,7 +175,8 @@ cv::Rect selection;     // 自定义矩形
 bool selectObject = false; // 是否选择对象
 
 /*鼠标点击事件处理*/
-static void onMouse(int event, int x, int y, int, void*) {
+static void
+onMouse(int event, int x, int y, int, void*) {
     if (selectObject) {
         selection.x = MIN(x, origin.x);
         selection.y = MIN(y, origin.y);
@@ -180,7 +190,6 @@ static void onMouse(int event, int x, int y, int, void*) {
         selection = cv::Rect(x, y, 0, 0);
         selectObject = true;
         point3 = xyz.at<cv::Vec3f>(origin);
-        point3[0];
 
         std::cout << "============================" << std::endl;
         std::cout << "world coordinate: " << std::endl;
@@ -201,15 +210,102 @@ static void onMouse(int event, int x, int y, int, void*) {
     }
 }
 
+/* 模拟2d雷达 */
+static void
+radar_2d_display(float x, float z, float range) {
+    cv::Scalar SHOW_COLOR;
+    std::string TIPS;
+    if (range > 300.0 && range < 500.0) {
+        SHOW_COLOR = WARNING_COLOR;
+        TIPS = "WARNING!";
+    }
+    if (range > 500.0) {
+        SHOW_COLOR = SAFE_COLOR;
+        TIPS = "SAFE";
+    }
+    if ( range < 300.0) {
+        SHOW_COLOR = DANGER_COLOR;
+        TIPS = "DANGER!!!";
+    }
+
+    cv::Mat radar(500, 500, CV_8UC3, cv::Scalar(240, 255, 255));
+    cv::line(radar, cv::Point(0, 50), cv::Point(radar.cols, 50), cv::Scalar(105, 105, 105), 2);
+    cv::line(radar, cv::Point(0, 150), cv::Point(radar.cols, 150), cv::Scalar(105, 105, 105), 2);
+    cv::line(radar, cv::Point(0, 250), cv::Point(radar.cols, 250), cv::Scalar(105, 105, 105), 2);
+    cv::putText(radar,
+                "1m",
+                cv::Point(0, 70), cv::FONT_HERSHEY_SIMPLEX, 0.5, cv::Scalar(102, 205, 0), 2);
+    cv::putText(radar,
+                "3m",
+                cv::Point(0, 170), cv::FONT_HERSHEY_SIMPLEX, 0.5, cv::Scalar(102, 205, 0), 2);
+    cv::putText(radar,
+                "5m",
+                cv::Point(0, 270), cv::FONT_HERSHEY_SIMPLEX, 0.5, cv::Scalar(102, 205, 0), 2);
+
+
+    cv::rectangle(radar, cv::Rect2f(250 + x/20, z/20 - 10 ,20, 20), SHOW_COLOR, -1, 8, 0);
+    cv::putText(radar,
+                std::to_string(range) + "cm",
+                cv::Point(250 + x/20, z/20 + 25), cv::FONT_HERSHEY_SIMPLEX, 0.5, SHOW_COLOR, 2);
+    cv::putText(radar,
+                TIPS,
+                cv::Point(0, 490), cv::FONT_HERSHEY_SIMPLEX, 1, SHOW_COLOR, 2);
+
+
+    cv::imshow("radar_2d", radar);
+}
+
+static void
+ranging_rect(cv::Mat& inputArray, cv::Rect rect)
+{
+    cv::Vec3f point_3f;
+    cv::Point centerPoint;
+
+    // center point
+    centerPoint = cv::Point(rect.width/2 + rect.x, rect.height/2 + rect.y);
+    point_3f = xyz.at<cv::Vec3f>(centerPoint);
+
+    // position
+    // std::cout << "x: " << point_3f[0] << "y: " << point_3f[1] << "z: " << point_3f[2] << std::endl;
+    d = point_3f[0] * point_3f[0] + point_3f[1] * point_3f[1] + point_3f[2] * point_3f[2];
+    d = sqrt(d);    // mm
+
+    // range
+    d = d / 10.0;   // cm
+
+    cv::circle(inputArray, centerPoint, 8, cv::Scalar(20, 60, 220), 4, 8, 0);
+    cv::rectangle(inputArray, rect, cv::Scalar(102, 205, 0), 2, 8, 0);
+    cv::putText(inputArray,
+                "Range: " + std::to_string(d) + "cm",
+                cv::Point(rect.x, rect.y-10), cv::FONT_HERSHEY_SIMPLEX, 1, cv::Scalar(102, 205, 0), 2);
+    cv::putText(inputArray,
+                "x: " + std::to_string(point_3f[0]),
+                cv::Point(rect.x + rect.width, rect.y+20), cv::FONT_HERSHEY_SIMPLEX, 1, cv::Scalar(102, 205, 0), 2);
+    cv::putText(inputArray,
+                "y: " + std::to_string(point_3f[1]),
+                cv::Point(rect.x + rect.width, rect.y+50), cv::FONT_HERSHEY_SIMPLEX, 1, cv::Scalar(102, 205, 0), 2);
+    cv::putText(inputArray,
+                "z: " + std::to_string(point_3f[2]),
+                cv::Point(rect.x + rect.width, rect.y+80), cv::FONT_HERSHEY_SIMPLEX, 1, cv::Scalar(102, 205, 0), 2);
+    cv::putText(inputArray,
+                "Time elapsed: " + std::to_string(time_elapsed) + "ms",
+                cv::Point(0, 30), cv::FONT_HERSHEY_SIMPLEX, 1, cv::Scalar(102, 205, 0), 2);
+
+
+    radar_2d_display(point_3f[0], point_3f[2], d);
+}
+
+
 int main(int argc, char** argv)
 {
     cv::Mat frame_left;
     cv::Mat frame_right;
     cv::Mat frame;
     cv::VideoCapture cap;
-    cap.open(1);
+    cap.open(1, cv::CAP_DSHOW);
     cap.set(cv::CAP_PROP_FRAME_WIDTH, FRAME_WIDTH);
     cap.set(cv::CAP_PROP_FRAME_HEIGHT, FRAME_HEIGHT);
+    cap.set(cv::CAP_PROP_FOURCC, cv::VideoWriter::fourcc('M', 'J', 'P', 'G'));
 
     if (!cap.isOpened())
         return -1;
@@ -223,18 +319,24 @@ int main(int argc, char** argv)
     while (cap.read(frame)) {
         frame_left = frame(cv::Rect(0, 0, int(FRAME_WIDTH/2), FRAME_HEIGHT));
         frame_right = frame(cv::Rect(int(FRAME_WIDTH/2), 0, int(FRAME_WIDTH/2), FRAME_HEIGHT));
-        cv::resize(frame_left, resize_frame_left, singleDisplaySize);
-        cv::resize(frame_right, resize_frame_right, singleDisplaySize);
+
+        cv::Mat frame_left_clone = frame_left.clone();
+        cv::Mat frame_right_clone = frame_right.clone();
 
         stereo_match(STEREO_3WAY, frame_left, frame_right, stereo_match_frame); // 立体匹配
+        ranging_rect(stereo_match_frame, cv::Rect(300, 400, 300, 300));
+        ranging_rect(frame_left_clone, cv::Rect(300, 400, 300, 300));
 
-        cv::resize(frame, resizedFrame, displaySize);
+        cv::resize(frame_left_clone, resize_frame_left, singleDisplaySize);
+        cv::resize(frame_right_clone, resize_frame_right, singleDisplaySize);
+
+        // cv::resize(frame, resizedFrame, displaySize);
         // cv::imshow("setero_match", resizedFrame);
-        cv::imshow("stereo", stereo_match_frame);
+        cv::imshow("disparity", stereo_match_frame);
         cv::imshow("left", resize_frame_left);
         cv::imshow("right", resize_frame_right);
 
-        cv::setMouseCallback("stereo", onMouse, 0);
+        cv::setMouseCallback("disparity", onMouse, 0);
 
         if (cv::waitKey(30) == 27)
             break;
