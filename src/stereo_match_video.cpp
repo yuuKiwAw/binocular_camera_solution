@@ -38,7 +38,7 @@ stereo_match(int algorithm, cv::Mat img_left, cv::Mat img_right, cv::Mat& out_di
     cv::Ptr<cv::StereoSGBM> sgbm = cv::StereoSGBM::create(0,16,3);
 
     int numberOfDisparities = 256;  // max-disparity
-    int SADWindowSize = 0;          // blocksize
+    int SADWindowSize = 5;          // blocksize
     // int color_mode = algorithm == STEREO_BM ? 0 : -1;
 
     cv::cvtColor(img_left, m_img_left, cv::COLOR_BGR2GRAY);
